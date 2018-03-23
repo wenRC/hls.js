@@ -16,3 +16,8 @@ coverage/
 
 # Build reports
 dist/bundle-analyzer-report.*
+
+dist/*
+package.json
+package-lock.json
+build.bat

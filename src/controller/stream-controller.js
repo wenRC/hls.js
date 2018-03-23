@@ -538,7 +538,7 @@ class StreamController extends TaskLoop {
     if (this.state !== nextState) {
       const previousState = this.state;
       this._state = nextState;
-      logger.log(`main stream:${previousState}->${nextState}`);
+      logger.log(`main stream:${previousState}->${nextState} wrc:test webpack`);
       this.hls.trigger(Event.STREAM_STATE_TRANSITION, { previousState, nextState });
     }
   }
