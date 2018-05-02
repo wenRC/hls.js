@@ -3,6 +3,8 @@
 */
 
 import { logger } from '../utils/logger';
+import{hlsDefaultConfig} from '../config';
+import Helper from '../utils/helper'
 
 class XhrLoader {
   constructor (config) {
@@ -26,6 +28,7 @@ class XhrLoader {
     this.requestTimeout = null;
     window.clearTimeout(this.retryTimeout);
     this.retryTimeout = null;
+    this.fetchReader.cancel();
   }
 
   load (context, config, callbacks) {
@@ -34,7 +37,7 @@ class XhrLoader {
     this.callbacks = callbacks;
     this.stats = { trequest: performance.now(), retry: 0 };
     this.retryDelay = config.retryDelay;
-    this.loadInternal();
+    this.loadInternalWithFetch();
   }
 
   loadInternal () {
@@ -153,6 +156,73 @@ class XhrLoader {
       // third arg is to provide on progress data
       onProgress(stats, this.context, null, xhr);
     }
+  }
+
+  loadInternalWithFetch(){
+    let curl=this.context.url;
+    let stats = this.stats;
+    stats.tfirst = 0;
+    stats.loaded = 0;
+    stats.tload=0;
+
+    //设置提交给转码的最小粒度
+    let submitSize = hlsDefaultConfig.submitSize;
+    let minss = hlsDefaultConfig.minSubmitSize;
+    let maxss = hlsDefaultConfig.maxSubmitSize;
+    if(submitSize<minss)
+      submitSize=minss;
+    else if(submitSize>maxss)
+      submitSize=maxss;
+    
+    let buf;
+    fetch(curl).then((response) => {
+      const reader = response.body.getReader();
+      this.fetchReader = reader;
+      const onReadChunk = chunk =>{
+        if(stats.tfirst == 0)
+          stats.tfirst = Math.max(stats.trequest,performance.now());
+
+        if(chunk.done){
+          if(buf){
+            if(chunk.value)
+              buf=Helper.appendU8A(buf,chunk.value);
+          }else{
+            buf=chunk.value;
+          }
+          let response = {url:curl,data:buf}
+          response.end=true;
+          this.callbacks.onSuccess(response,stats,this.context,null);
+          buf=null;
+          return;
+        }
+        if (chunk.value) {
+          if(stats.tload == 0)
+            stats.tload = performance.now();
+          
+          if (!buf) {
+            if (chunk.value.length < submitSize) {
+              buf = chunk.value;//不提交给转码
+            } else {
+              //无buffer，大小足够，直接提交给转码
+              let response = { url: curl, data: chunk.value }
+              response.end = false;
+              this.callbacks.onSuccess(response, stats, this.context, null);
+            }
+          } else {
+            buf = Helper.appendU8A(buf, chunk.value);
+            if (buf.length >= submitSize) {
+              let response = { url: curl, data: buf }
+              response.end = false;
+              this.callbacks.onSuccess(response, stats, this.context, null);
+              buf = null;
+            }
+          }
+        }
+
+        reader.read().then(onReadChunk);
+      }
+      reader.read().then(onReadChunk);
+    });
   }
 }
 

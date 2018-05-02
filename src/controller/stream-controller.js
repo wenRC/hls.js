@@ -947,7 +947,7 @@ class StreamController extends TaskLoop {
   onFragLoaded (data) {
     let fragCurrent = this.fragCurrent,
       fragLoaded = data.frag;
-    if (this.state === State.FRAG_LOADING &&
+    if (
         fragCurrent &&
         fragLoaded.type === 'main' &&
         fragLoaded.level === fragCurrent.level &&
@@ -1005,7 +1005,7 @@ class StreamController extends TaskLoop {
         let mediaSeeking = media && media.seeking;
         let accurateTimeOffset = !mediaSeeking && (details.PTSKnown || !details.live);
         let initSegmentData = details.initSegment ? details.initSegment.data : [];
-        demuxer.push(data.payload, initSegmentData, audioCodec, currentLevel.videoCodec, fragCurrent, duration, accurateTimeOffset, undefined);
+        demuxer.push(data.payload, initSegmentData, audioCodec, currentLevel.videoCodec, fragCurrent, duration, accurateTimeOffset, undefined,data.end);
       }
     }
     this.fragLoadError = 0;
@@ -1163,7 +1163,8 @@ class StreamController extends TaskLoop {
         this.state === State.PARSING) {
       this.stats.tparsed = performance.now();
       this.state = State.PARSED;
-      this._checkAppendedParsed();
+      this.tsEnd = data.end;
+      this._checkAppendedParsed(data.end);
     }
   }
 
@@ -1245,16 +1246,16 @@ class StreamController extends TaskLoop {
       if (state === State.PARSING || state === State.PARSED) {
         // check if all buffers have been appended
         this.pendingBuffering = (data.pending > 0);
-        this._checkAppendedParsed();
+        this._checkAppendedParsed(this.tsEnd);
       }
     }
   }
 
-  _checkAppendedParsed () {
+  _checkAppendedParsed (end) {
     // trigger handler right now
     if (this.state === State.PARSED && (!this.appended || !this.pendingBuffering)) {
       const frag = this.fragCurrent;
-      if (frag) {
+      if (end && frag) {
         const media = this.mediaBuffer ? this.mediaBuffer : this.media;
         logger.log(`main buffered : ${TimeRanges.toString(media.buffered)}`);
         this.fragPrevious = frag;

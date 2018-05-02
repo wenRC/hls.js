@@ -91,7 +91,7 @@ class Demuxer {
     }
   }
 
-  push (data, initSegment, audioCodec, videoCodec, frag, duration, accurateTimeOffset, defaultInitPTS) {
+  push (data, initSegment, audioCodec, videoCodec, frag, duration, accurateTimeOffset, defaultInitPTS,end) {
     const w = this.w;
     const timeOffset = !isNaN(frag.startDTS) ? frag.startDTS : frag.start;
     const decryptdata = frag.decryptdata;
@@ -113,7 +113,7 @@ class Demuxer {
     } else {
       let demuxer = this.demuxer;
       if (demuxer)
-        demuxer.push(data, decryptdata, initSegment, audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS);
+        demuxer.push(data, decryptdata, initSegment, audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS,end);
     }
   }
 

@@ -17,6 +17,7 @@ import SampleAesDecrypter from './sample-aes';
 // import Hex from '../utils/hex';
 import { logger } from '../utils/logger';
 import { ErrorTypes, ErrorDetails } from '../errors';
+import Helper from '../utils/helper'
 
 // We are using fixed track IDs for driving the MP4 remuxer
 // instead of following the TS PIDs.
@@ -133,7 +134,7 @@ class TSDemuxer {
   resetTimeStamp () {}
 
   // feed incoming data to the front of the parsing pipeline
-  append (data, timeOffset, contiguous, accurateTimeOffset) {
+  append (data, timeOffset, contiguous, accurateTimeOffset,end) {
     let start, len = data.length, stt, pid, atf, offset, pes,
       unknownPIDs = false;
     this.contiguous = contiguous;
@@ -158,11 +159,21 @@ class TSDemuxer {
 
     const syncOffset = TSDemuxer._syncOffset(data);
 
+    //将之前的buf拼接到data中
+    if(this.packetBuf){
+      data=Helper.appendU8A(this.packetBuf,data);
+      this.packetBuf=null;
+    }
+    len = data.length;
     // don't parse last TS packet if incomplete
-    len -= (len + syncOffset) % 188;
+    let packetMore = len % 188;
+    len -=packetMore;
+    //保存多出来的一小部分ts packet
+    if(packetMore>0)
+      this.packetBuf = data.slice(-packetMore);
 
     // loop through TS packets
-    for (start = syncOffset; start < len; start += 188) {
+    for (start = 0; start < len; start += 188) {
       if (data[start] === 0x47) {
         stt = !!(data[start + 1] & 0x40);
         // pid is a 13-bit field starting at the last bit of TS[1]
@@ -268,7 +279,7 @@ class TSDemuxer {
       }
     }
     // try to parse last PES packets
-    if (avcData && (pes = parsePES(avcData)) && pes.pts !== undefined) {
+    if (end && avcData && (pes = parsePES(avcData)) && pes.pts !== undefined) {
       parseAVCPES(pes, true);
       avcTrack.pesData = null;
     } else {
@@ -276,7 +287,7 @@ class TSDemuxer {
       avcTrack.pesData = avcData;
     }
 
-    if (audioData && (pes = parsePES(audioData)) && pes.pts !== undefined) {
+    if (end && audioData && (pes = parsePES(audioData)) && pes.pts !== undefined) {
       if (audioTrack.isAAC)
         parseAACPES(pes);
       else
@@ -291,7 +302,7 @@ class TSDemuxer {
       audioTrack.pesData = audioData;
     }
 
-    if (id3Data && (pes = parsePES(id3Data)) && pes.pts !== undefined) {
+    if (end && id3Data && (pes = parsePES(id3Data)) && pes.pts !== undefined) {
       parseID3PES(pes);
       id3Track.pesData = null;
     } else {
@@ -300,7 +311,7 @@ class TSDemuxer {
     }
 
     if (this.sampleAes == null)
-      this.remuxer.remux(audioTrack, avcTrack, id3Track, this._txtTrack, timeOffset, contiguous, accurateTimeOffset);
+      this.remuxer.remux(audioTrack, avcTrack, id3Track, this._txtTrack, timeOffset, contiguous, accurateTimeOffset,end);
     else
       this.decryptAndRemux(audioTrack, avcTrack, id3Track, this._txtTrack, timeOffset, contiguous, accurateTimeOffset);
   }
@@ -731,7 +742,7 @@ class TSDemuxer {
       }
     });
     // if last PES packet, push samples
-    if (last && avcSample) {
+    if (avcSample) {
       pushAccesUnit(avcSample, track);
       this.avcSample = null;
     }

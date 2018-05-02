@@ -77,9 +77,11 @@ class FragmentLoader extends EventHandler {
   loadsuccess (response, stats, context, networkDetails = null) {
     let payload = response.data, frag = context.frag;
     // detach fragment loader on load success
-    frag.loader = undefined;
-    this.loaders[frag.type] = undefined;
-    this.hls.trigger(Event.FRAG_LOADED, { payload: payload, frag: frag, stats: stats, networkDetails: networkDetails });
+    if (response.end) {
+      frag.loader = undefined;
+      this.loaders[frag.type] = undefined;
+    }
+    this.hls.trigger(Event.FRAG_LOADED, { payload: payload, frag: frag, stats: stats, networkDetails: networkDetails,end:response.end });
   }
 
   loaderror (response, context, networkDetails = null) {

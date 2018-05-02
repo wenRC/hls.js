@@ -26,7 +26,7 @@ class DemuxerInline {
       demuxer.destroy();
   }
 
-  push (data, decryptdata, initSegment, audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS) {
+  push (data, decryptdata, initSegment, audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS,end) {
     if ((data.byteLength > 0) && (decryptdata != null) && (decryptdata.key != null) && (decryptdata.method === 'AES-128')) {
       let decrypter = this.decrypter;
       if (decrypter == null)
@@ -51,11 +51,11 @@ class DemuxerInline {
         localthis.pushDecrypted(new Uint8Array(decryptedData), decryptdata, new Uint8Array(initSegment), audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS);
       });
     } else {
-      this.pushDecrypted(new Uint8Array(data), decryptdata, new Uint8Array(initSegment), audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS);
+      this.pushDecrypted(new Uint8Array(data), decryptdata, new Uint8Array(initSegment), audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS,end);
     }
   }
 
-  pushDecrypted (data, decryptdata, initSegment, audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS) {
+  pushDecrypted (data, decryptdata, initSegment, audioCodec, videoCodec, timeOffset, discontinuity, trackSwitch, contiguous, duration, accurateTimeOffset, defaultInitPTS,end) {
     let demuxer = this.demuxer;
     if (!demuxer ||
       // in case of continuity change, or track switch
@@ -103,7 +103,7 @@ class DemuxerInline {
     if (typeof demuxer.setDecryptData === 'function')
       demuxer.setDecryptData(decryptdata);
 
-    demuxer.append(data, timeOffset, contiguous, accurateTimeOffset);
+    demuxer.append(data, timeOffset, contiguous, accurateTimeOffset,end);
   }
 }
 

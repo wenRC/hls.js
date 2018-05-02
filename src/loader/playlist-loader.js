@@ -244,9 +244,9 @@ class PlaylistLoader extends EventHandler {
     }
 
     this.resetInternalLoader(context.type);
-
+    response.data = String.fromCharCode.apply(null,response.data);
     const string = response.data;
-
+    
     stats.tload = performance.now();
     // stats.mtime = new Date(target.getResponseHeader('Last-Modified'));
 

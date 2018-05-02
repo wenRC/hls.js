@@ -32,7 +32,7 @@ class MP4Remuxer {
     this.ISGenerated = false;
   }
 
-  remux (audioTrack, videoTrack, id3Track, textTrack, timeOffset, contiguous, accurateTimeOffset) {
+  remux (audioTrack, videoTrack, id3Track, textTrack, timeOffset, contiguous, accurateTimeOffset,end) {
     // generate Init Segment if needed
     if (!this.ISGenerated)
       this.generateIS(audioTrack, videoTrack, timeOffset);
@@ -92,7 +92,7 @@ class MP4Remuxer {
       this.remuxText(textTrack, timeOffset);
 
     // notify end of parsing
-    this.observer.trigger(Event.FRAG_PARSED);
+    this.observer.trigger(Event.FRAG_PARSED,{end:end});
   }
 
   generateIS (audioTrack, videoTrack, timeOffset) {
@@ -398,8 +398,8 @@ class MP4Remuxer {
       let flags = outputSamples[0].flags;
       // chrome workaround, mark first sample as being a Random Access Point to avoid sourcebuffer append issue
       // https://code.google.com/p/chromium/issues/detail?id=229412
-      flags.dependsOn = 2;
-      flags.isNonSync = 0;
+      // flags.dependsOn = 2;
+      // flags.isNonSync = 0;
     }
     track.samples = outputSamples;
     moof = MP4.moof(track.sequenceNumber++, firstDTS, track);

@@ -90,7 +90,10 @@ export var hlsDefaultConfig = {
   emeEnabled: false, // used by eme-controller
   widevineLicenseUrl: undefined, // used by eme-controller
   requestMediaKeySystemAccessFunc:
-            requestMediaKeySystemAccess // used by eme-controller
+            requestMediaKeySystemAccess, // used by eme-controller
+  submitSize:256*1024, //下载然后提交给转码的最小粒度（64KB~512KB）
+  minSubmitSize:64*1024,
+  maxSubmitSize:512*1024,
 };
 
 if (__USE_SUBTITLES__) {
